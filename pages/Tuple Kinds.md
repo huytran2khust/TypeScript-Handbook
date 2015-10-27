@@ -17,11 +17,9 @@ Most languages with higher-order kinds and types at all simply avoid spread argu
 
 ## Similar work in related languages
 
-Apparently haxe and Flow might have done something? Maybe?
+Apparently Flow has an undocumented `Either` type of types already. I haven't gone looking for any discussion yet.
 Nobody has a full solution for this as far as we know. 
 Typed languages normally avoid it (or simplify), dynamic languages don't care, and progressively typed languages have punted so far (I have checked Racket, Strongtalk and [Common Lisp](http://www.lispworks.com/documentation/HyperSpec/Issues/iss178_w.htm) so far).
-Flow has an ad-hoc solution that is undocumented so far. 
-haxe might have thought about it too?
 
 ## Preview example with `curry` and decorator
 
@@ -40,13 +38,39 @@ function curry<T, U, V>(f: (t: T, u: U) => V): (a:T) => (b:U) => V {
 }
 ```
 
-However, a variadic version is easy to write in Javascript but difficult to type in TypeScript:
+However, a variadic version is easy to write in Javascript but cannot be given a type in TypeScript:
 
 ```js
 function curry(f) {
     return ...a => ...b => f(...a, ...b);
 }
 ```
+
+Here's an example of using variadic kinds to type `curry`:
+
+```ts
+function curry<...T,...U,V>(f: (...ts: [...T, ...U]) => V): (...as:...T) => (...bs:...U) => V {
+    return ...a => ...b => f(...a, ...b);
+}
+```
+
+The syntax for variadic tuple types that I use here matches the spread and rest syntax used for values in Javascript.
+This is easier to learn but might make it harder to distinguish type annotations from value expressions.
+Similarly, the syntax for concatenating
+
+Open questions:
+Semantics of matching concatenated types -- it's fine to have a concatenated result, but what does it mean to match a concatenated parameter?
+
+To address question 3, let's look at an example call to `curry`:
+
+```ts
+function f(n: number, m: number, s: string, c: string): [number, number, string, string] {
+    return [n,m,s,c];
+}
+let [n,m,s,c] = curry(f)(1, 2)('foo', 'x');
+```
+
+TODO: Example for object-kinded too.
 
 ## Tuple-kinded type variables
 
