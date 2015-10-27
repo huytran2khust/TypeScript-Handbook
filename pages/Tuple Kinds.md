@@ -109,8 +109,9 @@ This function can be typed, but there is a depedency between `n` and the kind va
  I'm not sure whether this is code that should actually be supported.
  Even if it is, a verbose type annotation is a worthwhile price to pay to handle homogenous lists in Typescript's fairly buttoned-down type system.
 
-The previous example shows tuples used for variadic kinds. Let's look at objects used for named variadic kinds.
-Note that this is based on [a stage 2 ECMAScript proposal](https://github.com/sebmarkbage/ecmascript-rest-spread).
+The previous examples show tuples used for variadic kinds. 
+Note that, if JavaScript supported named arguments, then objects could also be expected to be spread into function calls, and Typescript would also need variadic object kinds.
+Currently [a stage 2 ECMAScript proposal](https://github.com/sebmarkbage/ecmascript-rest-spread) supports object spreading, but only within object destructuring contexts. Here is an example:
 In Javascript:
 
 ```js
@@ -140,15 +141,11 @@ function namedCurry(f: Total => void, obj1: FirstHalf): SecondHalf => void   {
 }
 ```
 
-So, actually this example doesn't need kinds. That's because named parameters don't exist in Ecmascript 2015.
+So, actually this example doesn't need kinds. That's because named parameters don't exist in Ecmascript 2015: the `arguments` array is an array, not an object. 
 
-## Tuple-kinded type variables
+## Variadic kind variables
 
-## Tuple-kinded type operators
-
-## Object-kinded type variables
-
-## Object-kinded type operators
+## Variadic kind operators
 
 ## Type checking rules
 
@@ -169,4 +166,3 @@ Concatenations of kinds cannot be used for type inference. However, you can stil
 ## Missed parts, open questions and future work
 
 1. Does the call site need type annotations? C# does even with fixed-arity higher-order functions.
-
