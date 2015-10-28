@@ -148,13 +148,14 @@ So, actually this example doesn't need kinds. That's because named parameters do
 The syntax of a variadic kind variable is `...T` where *T* is an identifier that is by convention a single upper-case letter, or `T` followed by a `PascalCase` identifier.
 Variadic kind variables can be used in a number of syntactic contexts:
 
-
 ### Variadic kind variables
 
-Variadic kinds can be bound in the usual location for type variable binding:
+Variadic kinds can be bound in the usual location for type variable binding, including functions and classes:
 
 ```ts
 function f<...T,...U>() {}
+}
+class C<...T> {
 }
 ```
 
@@ -287,13 +288,6 @@ The semantics are the same on classes and interfaces.
 
 ## Examples
 
-1. cons/concat
-2. apply
-3. curry
-4. pipe/compose
-5. decorators
-6. Tuple splice implemented as `Array.splice`
-
 ### cons/concat
 
 ```ts
@@ -364,7 +358,7 @@ slice<...T>(tuple: ...T): ...T;
 A class-based `slice` requires the containing class to bind a variadic kind variable:
 
 ```ts
-interface Tuple<...Tuple> {
-    slice(): ...Tuple;
+interface Tuple<...T> {
+    slice(): ...T;
 }
 ```
