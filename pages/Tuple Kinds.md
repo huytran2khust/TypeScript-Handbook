@@ -2,35 +2,18 @@
 
 ## Give Specific Types to Variadic Functions
 
-This proposal let Typescript users type higher-order functions that take a variable number of parameters.
-Example of functions like this include any `concat`, `apply`, `curry`, `compose`/`pipe` or almost any wrapping decorator.
-Essentially, any higher-order function that could be written in a functional language with fixed arity must be variable arity in TypeScript in order to support the variety of Javascript uses.
+This proposal lets Typescript users type higher-order functions that take a variable number of parameters.
+Functions like this include any `concat`, `apply`, `curry`, `compose`/`pipe` and almost any decorator that wraps a function.
+Essentially, any higher-order function that could be written in a functional language with fixed arity should be variable arity in TypeScript in order to support the variety of Javascript uses.
 With the ES2015 and ES2017 standards, this use will become even easier as programs start using spread arguments and rest parameters for both arrays and objects.
 
 Currently, Typescript does not support the entire ES2015 spec for spread/rest in argument lists precisely because it has no way to type most spread arguments that do not match a rest argument.
-And its support for tuples does not capture nearly all the tuple-like patterns that have been used in Javascript for a long time.
-And the ES2017 spec has a stage 2 proposal for spread/rest of object types which 
-This proposal addresses all these use cases with a single, very general typing strategy based on higher-order kinds.
-
-But higher-order kinds in a way that has not been attempted before. 
-Most languages with higher-order kinds and types at all simply avoid spread arguments. 
-
-## Similar work in related languages
-
-Apparently Flow has an undocumented `Either` type of types already. I haven't gone looking for any discussion yet.
-Nobody has a full solution for this as far as we know. 
-Typed languages normally avoid it (or simplify), dynamic languages don't care, and progressively typed languages have punted so far (I have checked Racket, Strongtalk and [Common Lisp](http://www.lispworks.com/documentation/HyperSpec/Issues/iss178_w.htm) so far).
+And its support for tuples does not capture nearly all the tuple-like patterns in Javascript.
+This proposal addresses these use cases with a single, very general typing strategy based on higher-order kinds.
 
 ## Preview example with `curry` and decorator
 
-`curry` in Haskell is simple because it only takes two arguments:
-
-```hs
-curry :: ((a,b) -> c) -> a -> b -> c
-curry f a b = f (a,b)
-```
-
-It's equally easy in Typescript with only two arguments:
+`curry` for functions with two arguments is simple to write in Typescript:
 
 ```ts
 function curry<T, U, V>(f: (t: T, u: U) => V, a:T): (b:U) => V {
@@ -46,7 +29,7 @@ function curry(f, ...a) {
 }
 ```
 
-Here's an example of using variadic kinds to type `curry`:
+Here's an example of using variadic kinds from this proposal to type `curry`:
 
 ```ts
 function curry<...T,...U,V>(f: (...ts: [...T, ...U]) => V, ...as:...T): (...bs:...U) => V {
