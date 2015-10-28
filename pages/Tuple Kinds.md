@@ -1,8 +1,8 @@
-# Tuple and Object Kinds for Typing Rest Parameters
+# Variadic Kinds 
 
-Or as an impenetrable noun compound, "variadic object kinds".
+## Give Specific Types to Variadic Functions
 
-The basic objective of this proposal is to let Typescript users type higher-order functions that take an variable number of optionally named parameters.
+The basic objective of this proposal is to let Typescript users type higher-order functions that take an variable number of parameters.
 Example of functions like this include any decorator, `concat`, `apply`, `curry`, `compose`/`pipe`.
 Essentially, any higher-order function that could be written in a functional language with fixed arity must be variable arity in TypeScript in order to support the variety of Javascript uses.
 This includes the ES2015 and ES2017 standards, which include spread arguments and rest parameters for both arrays and objects.
@@ -105,7 +105,7 @@ function rotate(l:[...T, ...U], n: number): [...U, ...T] {
 rotate<...[boolean, boolean, string], ...[string, number]>([true, true, 'none', 12', 'some'], 3);
 ```
 
-This function can be typed, but there is a depedency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
+This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
  I'm not sure whether this is code that should actually be supported.
  Even if it is, a verbose type annotation is a worthwhile price to pay to handle homogenous lists in Typescript's fairly buttoned-down type system.
 
@@ -287,6 +287,9 @@ So Typescript will need to support empty tuples, even if only internally.
 The semantics are the same on classes and interfaces.
 
 ## Examples
+
+Most of these examples are possible as fixed-argument functions in current Typescript, but with this proposal they can be written as variadic.
+This follows typical Javascript practise more closely.
 
 ### cons/concat
 
