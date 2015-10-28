@@ -143,15 +143,79 @@ function namedCurry(f: Total => void, obj1: FirstHalf): SecondHalf => void   {
 
 So, actually this example doesn't need kinds. That's because named parameters don't exist in Ecmascript 2015: the `arguments` array is an array, not an object. 
 
-## Variadic kind variables
+## Syntax
 
-## Variadic kind operators
+The syntax of a variadic kind variable is `...T` where *T* is an identifier that is by convention a single upper-case letter, or `T` followed by a `PascalCase` identifier.
+Variadic kind variables can be used in a number of syntactic contexts:
 
-## Type checking rules
+
+### Variadic kind variables
+
+Variadic kinds can be bound in the usual location for type variable binding:
+
+```ts
+function f<...T,...U>() {}
+}
+```
+
+And they can be referenced in any type annotation location:
+
+```ts
+function makeTuple<...T>(ts:...T): ...T {
+    return ts;
+}
+function f<...T,...U>(ts:...T): [...T,...U] {
+    let us: ...U = makeTuple('hello', 'world'); // note that U is constrained to [string,string] here
+    return [...ts, ...us];
+}
+```
+
+Tuples are instances of variadic kinds, so they continue to appear wherever tuple type annotations were previously allowed:
+
+```ts
+function f<...T>(ts:...T): [...T,string,string] {
+    let us: [string,string] = makeTuple('hello', 'world'); // note the annotation can be inferred here
+    return [...ts, ...us];
+}
+
+let tuple: [number, string] = [1,'foo'];
+f<[number,string],[string,string]>(tuple);
+```
+
+### Variadic kind operations
+
+Variadic kind variables, like type variables, are quite opaque and are not present at runtime.
+They do have one operation, unlike type variables.
+They can be concatenated with other kinds or with actual tuples.
+The syntax used for this is identical to the tuple-spreading syntax, but in type annotation location:
+
+```ts
+let t1: [...T,...U] = [...ts,...uProducer<...U>()];
+let t2: [...T,string,string,...U,number] = [...ts,'foo','bar',...uProducer<...U>(),12];
+```
+
+## Semantics
+
+A variadic kind variable represents a tuple type of any length. 
+Since it represents a set of types, we use the term 'kind' to refer to it, following its use in type theory.
+Because the set of types it represents is tuples of any length, we qualify 'kind' with 'variadic'.
+
+Therefore, declaring a variable of variadic tuple kind allows it to take on any *single* tuple type.
+However, like type variables, kind variables can only be declared by functions:
+
+```ts
+function f<...T>(): ...T {
+    let a: ...T;
+}
+```
+
+### Type checking and type inference
 
 Concatenations of kinds cannot be used for type inference. However, you can still annotate the types explicitly.
 
 ## Equivalence of parameter lists and tuple/object kinds
+
+Maybe. I'm not sure this is actually the case.
 
 ## Examples
 
