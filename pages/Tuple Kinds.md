@@ -201,7 +201,7 @@ Since it represents a set of types, we use the term 'kind' to refer to it, follo
 Because the set of types it represents is tuples of any length, we qualify 'kind' with 'variadic'.
 
 Therefore, declaring a variable of variadic tuple kind allows it to take on any *single* tuple type.
-However, like type variables, kind variables can only be declared by functions:
+Like type variables, kind variables can only be declared by functions, which then allows them to be used inside the body of the function:
 
 ```ts
 function f<...T>(): ...T {
@@ -209,23 +209,96 @@ function f<...T>(): ...T {
 }
 ```
 
+Calling a function with arguments typed as a variadic kind will assign a specific tuple type to the kind:
+
+```ts
+f([1,2,"foo"]);
+```
+
+Assigns the tuple type `[number,number,string]` to `...T`. 
+So in this application of `f`, `let a:...T` is equivalent to `let a:[number,number,string]`.
+However, because the type of `a` is not known when the function is written, the elements of the tuple cannot be referenced.
+Only concatenation will work.
+For example, new elements can be added to the tuple: 
+
+```ts
+function cons<H,...Tail>(car: H, cdr: ...Tail): [H,...Tail] {
+    return [car, ...cdr];
+}
+let l: [number, string, string, boolean]; 
+l = cons(1, cons("foo", ["baz", false]));
+```
+
+Like type variables, variadic kind variables can usually be inferred.
+The calls to `cons` could have been annotated:
+
+```ts
+l = cons<number,[string,string,boolean]>(1, cons<string,[string,boolean]>("foo", ["baz", false]));
+```
+
+For example, `cons` must infer two variables, a type *H* and a kind *...Tail*. 
+In the innermost call, `cons("foo", ["baz", false])`, `H=string` and `...Tail=[string,boolean]`. 
+In the outermost call, `H=number` and `...Tail=[string, string, boolean]`.
+The types assigned to *...Tail* are obtained by typing list literals as tuples -- variables of a tuple type can also be used:
+
+```ts
+let tail: [number, boolean] = ["baz", false];
+let l = cons(1, cons("foo", tail));
+```
+
+### Limits on type inference
+
+Note that concatenated kinds cannot be inferred because the checker cannot guess where the boundary between two kinds should be:
+
+```ts
+function twoKinds<...T,...U>(total: [...T,string,...U]) {
+}
+twoKinds("an", "ambiguous", "call", "to", "twoKinds")
+```
+
+The checker cannot decide whether to assign 
+
+1. `...T = [string,string,string], ...U = [string]`
+1. `...T = [string,string], ...U = [string,string]`
+1. `...T = [string], ...U = [string,string,string]`
+
+Some unambiguous calls are a casualty of this restriction:
+
+```ts
+twoKinds(1, "unambiguous", 12); // but still needs an annotation!
+```
+
+The solution is to add type annotations:
+
+```ts
+twoKinds<[string,string],[string,string]>("an", "ambiguous", "call", "to", "twoKinds");
+twoKinds<[number],[number]>(1, "unambiguous", 12);
+```
+
 ### Type checking and type inference
 
 Concatenations of kinds cannot be used for type inference. However, you can still annotate the types explicitly.
 
-## Equivalence of parameter lists and tuple/object kinds
-
-Maybe. I'm not sure this is actually the case.
-
 ## Examples
 
-1. concat
+1. cons/concat
 2. apply
 3. curry
 4. pipe/compose
 5. decorators
+6. Tuple splice implemented as `Array.splice`
 
-## Implementation concerns
+### cons/concat
+
+```ts
+function cons<H,...T>(head: H, tail:...T): [H, ...T] {
+    return [head, ...tail];
+}
+function concat<...T,...U>(first: ...T, second: ...U): [...T, ...U] {
+    return [...first, ...second];
+}
+cons(1, ["foo", false]);
+```
 
 ## Missed parts, open questions and future work
 
