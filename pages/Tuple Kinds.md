@@ -275,9 +275,15 @@ twoKinds<[string,string],[string,string]>("an", "ambiguous", "call", "to", "twoK
 twoKinds<[number],[number]>(1, "unambiguous", 12);
 ```
 
-### Type checking and type inference
+### Extensions of tuple types
 
-Concatenations of kinds cannot be used for type inference. However, you can still annotate the types explicitly.
+Typescript does not allow users to write an empty tuple type.
+However, this proposal requires variadic kinds to be bound to a empty tuple.
+So Typescript will need to support empty tuples, even if only internally.
+
+### Semantics on classes and interfaces
+
+The semantics are the same on classes and interfaces.
 
 ## Examples
 
@@ -294,12 +300,71 @@ Concatenations of kinds cannot be used for type inference. However, you can stil
 function cons<H,...T>(head: H, tail:...T): [H, ...T] {
     return [head, ...tail];
 }
-function concat<...T,...U>(first: ...T, second: ...U): [...T, ...U] {
+function concat<...T,...U>(first: ...T, ...second: ...U): [...T, ...U] {
     return [...first, ...second];
 }
-cons(1, ["foo", false]);
+cons(1, ["foo", false]); // === [1, "foo", false]
+concat(['a', true], 1, 'b'); // === ['a', true, 1, 'b']
+concat(['a', true]); // === ['a', true, 1, 'b']
 ```
 
-## Missed parts, open questions and future work
+### apply
 
-1. Does the call site need type annotations? C# does even with fixed-arity higher-order functions.
+```ts
+function apply<...T,U>(f: (args:...T) => U, args: ...T): U {
+    return f(args);
+}
+```
+
+### curry
+
+```ts
+function curry<...T,...U,V>(f: (...args:[...T,...U]) => V, ts:...T): (us: ...U) => V {
+    return us => f(...ts, ...us);
+}
+```
+
+### pipe/compose
+
+```ts
+function pipe<...T,U,V>(f: (ts:...T) => U, g: (u:U) => V): (args: ...T) => V {
+    return ...args => g(f(...args));
+}
+```
+
+```ts
+function compose<...T,U,V>(f: (u:U) => U, g: (ts:...T) => V): (args: ...T) => V {
+    return ...args => f(g(...args));
+}
+```
+
+TODO: Could `f` return `...U` instead of `U`?
+
+### decorators
+
+```ts
+function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
+    let method = descriptor.value;
+
+    descriptor.value = function (...args: ...T): U {
+      console.log(args);
+      method.apply(this, args);
+    }
+}
+```
+
+### Tuple copy implemented as `Array.slice()`
+
+A function-based `slice` is simple to write:
+
+```ts
+slice<...T>(tuple: ...T): ...T;
+```
+
+A class-based `slice` requires the containing class to bind a variadic kind variable:
+
+```ts
+interface Tuple<...Tuple> {
+    slice(): ...Tuple;
+}
+```
