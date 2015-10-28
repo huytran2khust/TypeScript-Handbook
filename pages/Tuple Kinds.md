@@ -2,12 +2,12 @@
 
 ## Give Specific Types to Variadic Functions
 
-The basic objective of this proposal is to let Typescript users type higher-order functions that take an variable number of parameters.
-Example of functions like this include any decorator, `concat`, `apply`, `curry`, `compose`/`pipe`.
+This proposal let Typescript users type higher-order functions that take a variable number of parameters.
+Example of functions like this include any `concat`, `apply`, `curry`, `compose`/`pipe` or almost any wrapping decorator.
 Essentially, any higher-order function that could be written in a functional language with fixed arity must be variable arity in TypeScript in order to support the variety of Javascript uses.
-This includes the ES2015 and ES2017 standards, which include spread arguments and rest parameters for both arrays and objects.
+With the ES2015 and ES2017 standards, this use will become even easier as programs start using spread arguments and rest parameters for both arrays and objects.
 
-Currently, Typescript does not support the ES2015 spec for spread/rest in argument lists precisely because it has no way to type most combinations of spread arguments with no rest arguments.
+Currently, Typescript does not support the entire ES2015 spec for spread/rest in argument lists precisely because it has no way to type most spread arguments that do not match a rest argument.
 And its support for tuples does not capture nearly all the tuple-like patterns that have been used in Javascript for a long time.
 And the ES2017 spec has a stage 2 proposal for spread/rest of object types which 
 This proposal addresses all these use cases with a single, very general typing strategy based on higher-order kinds.
@@ -364,4 +364,22 @@ A class-based `slice` requires the containing class to bind a variadic kind vari
 interface Tuple<...T> {
     slice(): ...T;
 }
+```
+
+### Spread arguments that don't directly match a rest parameter
+
+That is, `car` and `cdr`:
+
+```ts
+function car<H,...T>(l: [H,...T]): H {
+    let [head, ...tail] = l;
+    return head;
+}
+function cdr<H,...T>(l: [H,...T]): ...T {
+    let [head, ...tail] = l;
+    return ...tail;
+}
+
+cdr(["foo", 1, 2]); // => [1,2]
+car(["foo", 1, 2]); // => "foo"
 ```
