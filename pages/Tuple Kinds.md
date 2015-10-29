@@ -72,51 +72,12 @@ V = [number, number, string, string]
 ...U = []
 ```
 
-Note that non-rest parameters can be typed as tuple kinds.
-The examples section contains several examples of this.
-
-The previous examples show tuples used for variadic kinds. 
-Note that, if JavaScript supported named arguments, then objects could also be expected to be spread into function calls, and Typescript would also need variadic object kinds.
-Currently [a stage 2 ECMAScript proposal](https://github.com/sebmarkbage/ecmascript-rest-spread) supports object spreading, but only within object destructuring contexts. Here is an example:
-In Javascript:
-
-```js
-function namedCurry(f, obj1) {
-    return obj2 => f({...obj1, ...obj2});
-}
-function f({a, b, c, d}) {
-}
-namedCurry(f, {a: 12, b: 34})({c: 56, d: 78});
-```
-
-And now with types in TypeScript:
-
-```ts
-interface FirstHalf {
-    a: string;
-    b: number;
-}
-interface SecondHalf {
-    c: string;
-    d: boolean;
-}
-interface Total extends FirstHalf, SecondHalf {
-}
-function namedCurry(f: Total => void, obj1: FirstHalf): SecondHalf => void   {
-    return obj2 => f({...obj1, ...obj2});
-}
-```
-
-So, actually this example doesn't need kinds. That's because named parameters don't exist in Ecmascript 2015: the `arguments` array is an array, not an object. 
-
 ## Syntax
 
 The syntax of a variadic kind variable is `...T` where *T* is an identifier that is by convention a single upper-case letter, or `T` followed by a `PascalCase` identifier.
 Variadic kind variables can be used in a number of syntactic contexts:
 
-### Variadic kind variables
-
-Variadic kinds can be bound in the usual location for type variable binding, including functions and classes:
+Variadic kinds can be bound in the usual location for type parameter binding, including functions and classes:
 
 ```ts
 function f<...T,...U>() {}
@@ -132,26 +93,13 @@ function makeTuple<...T>(ts:...T): ...T {
     return ts;
 }
 function f<...T,...U>(ts:...T): [...T,...U] {
-    let us: ...U = makeTuple('hello', 'world'); // note that U is constrained to [string,string] here
+    // note that U is constrained to [string,string] in this function
+    let us: ...U = makeTuple('hello', 'world');
     return [...ts, ...us];
 }
 ```
 
-Tuples are instances of variadic kinds, so they continue to appear wherever tuple type annotations were previously allowed:
-
-```ts
-function f<...T>(ts:...T): [...T,string,string] {
-    let us: [string,string] = makeTuple('hello', 'world'); // note the annotation can be inferred here
-    return [...ts, ...us];
-}
-
-let tuple: [number, string] = [1,'foo'];
-f<[number,string],[string,string]>(tuple);
-```
-
-### Variadic kind operations
-
-Variadic kind variables, like type variables, are quite opaque and are not present at runtime.
+Variadic kind variables, like type variables, are quite opaque.
 They do have one operation, unlike type variables.
 They can be concatenated with other kinds or with actual tuples.
 The syntax used for this is identical to the tuple-spreading syntax, but in type annotation location:
@@ -161,6 +109,19 @@ let t1: [...T,...U] = [...ts,...uProducer<...U>()];
 let t2: [...T,string,string,...U,number] = [...ts,'foo','bar',...uProducer<...U>(),12];
 ```
 
+Tuple types are instances of variadic kinds, so they continue to appear wherever type annotations were previously allowed:
+
+```ts
+function f<...T>(ts:...T): [...T,string,string] { 
+    // note the type of `us` could have been inferred here
+    let us: [string,string] = makeTuple('hello', 'world');
+    return [...ts, ...us];
+}
+
+let tuple: [number, string] = [1,'foo'];
+f<[number,string]>(tuple);
+```
+
 ## Semantics
 
 A variadic kind variable represents a tuple type of any length. 
@@ -168,7 +129,7 @@ Since it represents a set of types, we use the term 'kind' to refer to it, follo
 Because the set of types it represents is tuples of any length, we qualify 'kind' with 'variadic'.
 
 Therefore, declaring a variable of variadic tuple kind allows it to take on any *single* tuple type.
-Like type variables, kind variables can only be declared by functions, which then allows them to be used inside the body of the function:
+Like type variables, kind variables can only be declared as parameters to functions, classes, etc, which then allows them to be used inside the body:
 
 ```ts
 function f<...T>(): ...T {
@@ -182,15 +143,15 @@ Calling a function with arguments typed as a variadic kind will assign a specifi
 f([1,2,"foo"]);
 ```
 
-Assigns the tuple type `[number,number,string]` to `...T`. 
-So in this application of `f`, `let a:...T` is equivalent to `let a:[number,number,string]`.
-However, because the type of `a` is not known when the function is written, the elements of the tuple cannot be referenced.
-Only concatenation will work.
+Assigns the tuple type `...T=[number,number,string]`...T`. 
+So in this application of `f`, `let a:...T` is instantiated as `let a:[number,number,string]`.
+However, because the type of `a` is not known when the function is written, the elements of the tuple cannot be referenced in the body of the function.
+Only creating a new tuple from `a` is allowed.
 For example, new elements can be added to the tuple: 
 
 ```ts
-function cons<H,...Tail>(car: H, cdr: ...Tail): [H,...Tail] {
-    return [car, ...cdr];
+function cons<H,...Tail>(head: H, tail: ...Tail): [H,...Tail] {
+    return [head, ...tail];
 }
 let l: [number, string, string, boolean]; 
 l = cons(1, cons("foo", ["baz", false]));
@@ -213,9 +174,22 @@ let tail: [number, boolean] = ["baz", false];
 let l = cons(1, cons("foo", tail));
 ```
 
+Additionally, variadic kind variables can be inferred when concatenated with types:
+
+```ts
+function car<H,...Tail>(l: [H, ...Tail]): H {
+    let [head, ...tail] = l;
+    return head;
+}
+car([1, "foo", false]);
+```
+
+Here, the type of `l` is inferred as `[number, string, boolean]`. 
+Then `H=number` and `...Tail=[string, boolean]`.
+
 ### Limits on type inference
 
-Note that concatenated kinds cannot be inferred because the checker cannot guess where the boundary between two kinds should be:
+Concatenated kinds cannot be inferred because the checker cannot guess where the boundary between two kinds should be:
 
 ```ts
 function twoKinds<...T,...U>(total: [...T,string,...U]) {
@@ -250,29 +224,31 @@ function rotate(l:[...T, ...U], n: number): [...U, ...T] {
     let rest: ...U = l.slice(n);
     return [...rest, ...first];
 }
-rotate<...[boolean, boolean, string], ...[string, number]>([true, true, 'none', 12', 'some'], 3);
+rotate<[boolean, boolean, string], [string, number]>([true, true, 'none', 12', 'some'], 3);
 ```
 
 This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
-I'm not sure whether this is code that should actually be supported.
+I'm not sure whether this is code that should actually be allowed.
 
-
-### Extensions of tuple types
+### Empty tuple types
 
 Typescript does not allow users to write an empty tuple type.
-However, this proposal requires variadic kinds to be bound to a empty tuple.
+However, this proposal requires variadic kinds to be bindable to a empty tuple.
 So Typescript will need to support empty tuples, even if only internally.
 
 ### Semantics on classes and interfaces
 
 The semantics are the same on classes and interfaces.
 
+TODO: There are probably some class-specific wrinkles in the semantics.
+
 ## Examples
 
 Most of these examples are possible as fixed-argument functions in current Typescript, but with this proposal they can be written as variadic.
+Some, like `cons` and `concat`, can be written for homogeneous arrays in current Typescript but can now be written for heteregoneous tuples using tuple kinds.
 This follows typical Javascript practise more closely.
 
-### cons/concat
+### Return a concatenated type
 
 ```ts
 function cons<H,...T>(head: H, tail:...T): [H, ...T] {
@@ -284,72 +260,12 @@ function concat<...T,...U>(first: ...T, ...second: ...U): [...T, ...U] {
 cons(1, ["foo", false]); // === [1, "foo", false]
 concat(['a', true], 1, 'b'); // === ['a', true, 1, 'b']
 concat(['a', true]); // === ['a', true, 1, 'b']
+
+let start: [number,number] = [1,2]; // type annotation required here
+cons(3, start); // == [3,1,2]
 ```
 
-### apply
-
-```ts
-function apply<...T,U>(f: (args:...T) => U, args: ...T): U {
-    return f(args);
-}
-```
-
-### curry
-
-```ts
-function curry<...T,...U,V>(f: (...args:[...T,...U]) => V, ts:...T): (us: ...U) => V {
-    return us => f(...ts, ...us);
-}
-```
-
-### pipe/compose
-
-```ts
-function pipe<...T,U,V>(f: (ts:...T) => U, g: (u:U) => V): (args: ...T) => V {
-    return ...args => g(f(...args));
-}
-```
-
-```ts
-function compose<...T,U,V>(f: (u:U) => U, g: (ts:...T) => V): (args: ...T) => V {
-    return ...args => f(g(...args));
-}
-```
-
-TODO: Could `f` return `...U` instead of `U`?
-
-### decorators
-
-```ts
-function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
-    let method = descriptor.value;
-
-    descriptor.value = function (...args: ...T): U {
-      console.log(args);
-      method.apply(this, args);
-    }
-}
-```
-
-### Tuple copy implemented as `Array.slice()`
-
-A function-based `slice` is simple to write:
-
-```ts
-slice<...T>(tuple: ...T): ...T;
-```
-
-A class-based `slice` requires the containing class to bind a variadic kind variable:
-
-```ts
-interface Tuple<...T> {
-    slice(): ...T;
-}
-```
-
-### Spread arguments that don't directly match a rest parameter
-
-That is, `car` and `cdr`:
+### Concatenated type as parameter
 
 ```ts
 function car<H,...T>(l: [H,...T]): H {
@@ -363,4 +279,57 @@ function cdr<H,...T>(l: [H,...T]): ...T {
 
 cdr(["foo", 1, 2]); // => [1,2]
 car(["foo", 1, 2]); // => "foo"
+```
+
+### Variadic functions as arguments
+
+```ts
+function apply<...T,U>(f: (...args:...T) => U, args: ...T): U {
+    return f(...args);
+}
+
+function f(x: number, y: string) {
+}
+function g(x: number, y: string, z: string) {
+}
+
+apply(f, [1, 'foo']); // ok
+apply(f, [1, 'foo', 'bar']); // too many arguments
+apply(g, [1, 'foo', 'bar']); // ok
+```
+
+```ts
+function curry<...T,...U,V>(f: (...args:[...T,...U]) => V, ...ts:...T): (...us: ...U) => V {
+    return us => f(...ts, ...us);
+}
+let h: (...us: [string, string]) = curry(f, 1);
+let i: (s: string, t: string) = curry(f, 2);
+h('hello', 'world');
+```
+
+```ts
+function compose<...T,U,V>(f: (u:U) => U, g: (ts:...T) => V): (args: ...T) => V {
+    return ...args => f(g(...args));
+}
+function first(x: number, y: number): string {
+}
+function second(s: string) {
+}
+let j: (x: number, y: number) => void = compose(second, first);
+j(1, 2);
+
+```
+
+TODO: Could `f` return `...U` instead of `U`?
+
+### Decorators
+
+```ts
+function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
+    let method = descriptor.value;
+    descriptor.value = function (...args: ...T): U {
+        console.log(args);
+        method.apply(this, args);
+    }
+}
 ```
