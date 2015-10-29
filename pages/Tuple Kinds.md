@@ -230,11 +230,19 @@ rotate<[boolean, boolean, string], [string, number]>([true, true, 'none', 12', '
 This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
 I'm not sure whether this is code that should actually be allowed.
 
-### Empty tuple types
+### Extensions to the other parts of typescript
 
-Typescript does not allow users to write an empty tuple type.
-However, this proposal requires variadic kinds to be bindable to a empty tuple.
-So Typescript will need to support empty tuples, even if only internally.
+1. Typescript does not allow users to write an empty tuple type.
+  However, this proposal requires variadic kinds to be bindable to a empty tuple.
+  So Typescript will need to support empty tuples, even if only internally.
+2. The type of rest parameters can currently only be an array. 
+  This proposal requires that it can also be a tuple.
+3. Functions with rest parameters of type tuple must be assignable to fixed-length functions with the same number of parameters as the rest parameter. For example:
+
+    ```ts
+    let f: (x: string, y: number) => number = (...tuple: [string, number]) => 12;
+    let g: (...tuple: [string, number]) => number = (x,y) => 12;
+    ```
 
 ### Semantics on classes and interfaces
 
