@@ -2,18 +2,23 @@
 
 ## Give Specific Types to Variadic Functions
 
-This proposal lets Typescript users type higher-order functions that take a variable number of parameters.
-Functions like this include any `concat`, `apply`, `curry`, `compose`/`pipe` and almost any decorator that wraps a function.
-Essentially, any higher-order function that could be written in a functional language with fixed arity should be variable arity in TypeScript in order to support the variety of Javascript uses.
-With the ES2015 and ES2017 standards, this use will become even easier as programs start using spread arguments and rest parameters for both arrays and objects.
-
-Currently, Typescript does not support the entire ES2015 spec for spread/rest in argument lists precisely because it has no way to type most spread arguments that do not match a rest argument.
-And its support for tuples does not capture nearly all the tuple-like patterns in Javascript.
+This proposal lets Typescript give types to higher-order functions that take a variable number of parameters.
+Functions like this include `concat`, `apply`, `curry`, `compose` and almost any decorator that wraps a function.
+In Javascript, these higher-order functions are expected to accept variadic functionsas arguments.
+With the ES2015 and ES2017 standards, this use will become even more common as programmers start using spread arguments and rest parameters for both arrays and objects.
 This proposal addresses these use cases with a single, very general typing strategy based on higher-order kinds.
 
-## Preview example with `curry` and decorator
+## Preview example with `curry`
 
-`curry` for functions with two arguments is simple to write in Typescript:
+`curry` for functions with two arguments is simple to write in Javascript and Typescript:
+
+```js
+function curry(f, a) {
+    return b => f(a, b);
+}
+```
+
+and in Typescript with type annotations:
 
 ```ts
 function curry<T, U, V>(f: (t: T, u: U) => V, a:T): (b:U) => V {
@@ -39,16 +44,16 @@ function curry<...T,...U,V>(f: (...ts: [...T, ...U]) => V, ...as:...T): (...bs:.
 
 The syntax for variadic tuple types that I use here matches the spread and rest syntax used for values in Javascript.
 This is easier to learn but might make it harder to distinguish type annotations from value expressions.
-Similarly, the syntax for concatenating looks like tuple construction, even though it's really concatenation of two type lists.
+Similarly, the syntax for concatenating looks like tuple construction, even though it's really concatenation of two tuple types.
 
-To address this question, let's look at an example call to `curry`:
+Now let's look at an example call to `curry`:
 
 ```ts
 function f(n: number, m: number, s: string, c: string): [number, number, string, string] {
     return [n,m,s,c];
 }
 let [n,m,s,c] = curry(f, 1, 2)('foo', 'x');
-let [n,m,s,c] = curry(f, 1, 2, 'foo')('x');
+let [n,m,s,c] = curry(f, 1, 2, 'foo', 'x')();
 ```
 
 In the first call, 
@@ -63,34 +68,12 @@ In the second call,
 
 ```
 V = [number, number, string, string]
-...T = [number, number, string]]
-...U = [string]
+...T = [number, number, string, string]
+...U = []
 ```
 
 Note that non-rest parameters can be typed as tuple kinds.
-Note that concatenations of variadic kinds cannot be used for type inference, such as in `rotate`:
-
-```js
-function rotate(l, n) {
-    let first = l.slice(0, n);
-    let rest = l.slice(n);
-    return [...rest, ...first];
-}
-rotate([true, true, 'none', 12, 'some'], 3); // returns [12, 'some', true, true, 'none']
-```
-
-```ts
-function rotate(l:[...T, ...U], n: number): [...U, ...T] {
-    let first: ...T = l.slice(0, n);
-    let rest: ...U = l.slice(n);
-    return [...rest, ...first];
-}
-rotate<...[boolean, boolean, string], ...[string, number]>([true, true, 'none', 12', 'some'], 3);
-```
-
-This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
- I'm not sure whether this is code that should actually be supported.
- Even if it is, a verbose type annotation is a worthwhile price to pay to handle homogenous lists in Typescript's fairly buttoned-down type system.
+The examples section contains several examples of this.
 
 The previous examples show tuples used for variadic kinds. 
 Note that, if JavaScript supported named arguments, then objects could also be expected to be spread into function calls, and Typescript would also need variadic object kinds.
@@ -258,6 +241,21 @@ The solution is to add type annotations:
 twoKinds<[string,string],[string,string]>("an", "ambiguous", "call", "to", "twoKinds");
 twoKinds<[number],[number]>(1, "unambiguous", 12);
 ```
+
+Uncheckable dependencies between type arguments and the function body can arise, as in `rotate`:
+
+```ts
+function rotate(l:[...T, ...U], n: number): [...U, ...T] {
+    let first: ...T = l.slice(0, n);
+    let rest: ...U = l.slice(n);
+    return [...rest, ...first];
+}
+rotate<...[boolean, boolean, string], ...[string, number]>([true, true, 'none', 12', 'some'], 3);
+```
+
+This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
+I'm not sure whether this is code that should actually be supported.
+
 
 ### Extensions of tuple types
 
