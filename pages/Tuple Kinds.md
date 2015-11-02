@@ -238,7 +238,7 @@ TODO: There are probably some class-specific wrinkles in the semantics.
 
 ## Assignability between tuples and parameter lists
 
-Tuple kinds can be assigned to functions with rest parameters:
+Tuple kinds can be used to give a type to rest arguments of functions inside their scope:
 
 ```ts
 function apply<...T,U>(ap: (...args:...T) => U, args: ...T): U {
@@ -264,7 +264,8 @@ g(a, ...[12, 'foo']);
 
 ### Tuple types generated for optional and rest parameters
 
-Since tuples can't represent optional parameters directly, when a function (argument?) is assigned to a tuple kind, the generated tuple type is a union of tuple types:
+Since tuples can't represent optional parameters directly, when a function is assigned to a function parameter that is typed by a tuple kind, the generated tuple type is a union of tuple types.
+Look at the type of `h` after it has been curried:
 
 ```ts
 function curry<...T,...U,V>(cur: (...args:[...T,...U]) => V, ...ts:...T): (...us:...U) => V {
