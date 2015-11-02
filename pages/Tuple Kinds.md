@@ -230,6 +230,58 @@ rotate<[boolean, boolean, string], [string, number]>([true, true, 'none', 12', '
 This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
 I'm not sure whether this is code that should actually be allowed.
 
+### Assignability between tuples and parameter lists
+
+Tuple kinds can be assigned to functions with rest parameters:
+
+```ts
+function apply<...T,U>(ap: (...args:...T) => U, args: ...T): U {
+    return ap(...args);
+}
+function applyspec(ap: (...args:[number, string]) => U, args: [number, string]): string {
+    return ap(...args);
+}
+function f(a: number, b: string) => string {
+    return b + a;
+}
+apply(f, [1, 'foo']);
+```
+
+In this example, the parameter list of `f: (a: number, b:string) => string` must be assignable to the tuple type instantiated for the kind `...T`.
+The tuple type that is inferred is `[number, string]`, which means that `(a: number, b: string) => string` must be assignable to `(...args: [number, string]) => string`.
+
+As a side effect, function calls will be able to take advantage of this assignability by spreading tuples into rest parameters, even if the function doesn't have a tuple kind:
+
+```ts
+function g(a: number, ...b: [number, string]) {
+    return a + b[0];
+}
+g(a, ...[12, 'foo']);
+```
+
+#### Tuple types generated for optional and rest parameters
+
+Since tuples can't represent optional parameters directly, when a function (argument?) is assigned to a tuple kind, the generated tuple type is a union of tuple types:
+
+```ts
+function curry<...T,...U,V>(cur: (...args:[...T,...U]) => V, ...ts:...T): (...us:...U) => V {
+    return ...us => cur(...ts, ...us);
+}
+function h(a: number, b?:string): number {
+}
+let curried = curry(h, 12);
+curried('foo'); // ok
+curried(); // ok
+```
+
+Here `...T=([number] | [number, string])`, so `curried: ...([number] | [number, string]) => number` and  
+
+```ts
+function f(a: string, b?: number, ...c: boolean[]): number;
+function id<T>(t: T): T;
+let g = compose(f, id);
+```
+
 ### Extensions to the other parts of typescript
 
 1. Typescript does not allow users to write an empty tuple type.
