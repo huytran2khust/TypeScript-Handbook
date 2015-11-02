@@ -230,15 +230,18 @@ rotate<[boolean, boolean, string], [string, number]>([true, true, 'none', 12', '
 This function can be typed, but there is a dependency between `n` and the kind variables: `n === ...T.length` must be true for the type to be correct.
 I'm not sure whether this is code that should actually be allowed.
 
-### Assignability between tuples and parameter lists
+### Semantics on classes and interfaces
+
+The semantics are the same on classes and interfaces.
+
+TODO: There are probably some class-specific wrinkles in the semantics.
+
+## Assignability between tuples and parameter lists
 
 Tuple kinds can be assigned to functions with rest parameters:
 
 ```ts
 function apply<...T,U>(ap: (...args:...T) => U, args: ...T): U {
-    return ap(...args);
-}
-function applyspec(ap: (...args:[number, string]) => U, args: [number, string]): string {
     return ap(...args);
 }
 function f(a: number, b: string) => string {
@@ -259,7 +262,7 @@ function g(a: number, ...b: [number, string]) {
 g(a, ...[12, 'foo']);
 ```
 
-#### Tuple types generated for optional and rest parameters
+### Tuple types generated for optional and rest parameters
 
 Since tuples can't represent optional parameters directly, when a function (argument?) is assigned to a tuple kind, the generated tuple type is a union of tuple types:
 
@@ -274,33 +277,26 @@ curried('foo'); // ok
 curried(); // ok
 ```
 
-Here `...T=([number] | [number, string])`, so `curried: ...([number] | [number, string]) => number` and  
+Here `...T=([number] | [number, string])`, so `curried: ...([number] | [number, string]) => number` which can be called as you would expect. Unfortunately, this strategy does not work for rest parameters. These just get turned into arrays:
 
 ```ts
-function f(a: string, b?: number, ...c: boolean[]): number;
-function id<T>(t: T): T;
-let g = compose(f, id);
+function i(a: number, b?: string, ...c: boolean[]): number {
+}
+let curried = curry(i, 12);
+curried('foo', [true, false]);
+curried([true, false]);
 ```
 
-### Extensions to the other parts of typescript
+Here, `curried: ...([string, boolean[]] | [boolean[]]) => number`.
+I think this could be supported if there were a special case for functions with a tuple rest parameter, where the last element of the tuple is an array.
+In that case the function call would allow extra arguments of the correct type to match the array.
+However, that seems too complex to be worthwhile.
+
+## Extensions to the other parts of typescript
 
 1. Typescript does not allow users to write an empty tuple type.
   However, this proposal requires variadic kinds to be bindable to a empty tuple.
   So Typescript will need to support empty tuples, even if only internally.
-2. The type of rest parameters can currently only be an array. 
-  This proposal requires that it can also be a tuple.
-3. Functions with rest parameters of type tuple must be assignable to fixed-length functions with the same number of parameters as the rest parameter. For example:
-
-    ```ts
-    let f: (x: string, y: number) => number = (...tuple: [string, number]) => 12;
-    let g: (...tuple: [string, number]) => number = (x,y) => 12;
-    ```
-
-### Semantics on classes and interfaces
-
-The semantics are the same on classes and interfaces.
-
-TODO: There are probably some class-specific wrinkles in the semantics.
 
 ## Examples
 
@@ -393,3 +389,8 @@ function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
     }
 }
 ```
+
+## Open questions
+
+1. Does the tuple-to-parameter-list assignability story hold up? It's especially shaky around optional and rest parameters.
+2. Specifically, should rest parameters be special cased to retain their nice calling syntax, even when they are generated from a tuple type? (In this proposal, functions typed by a tuple kind have to pass arrays to their rest parameters, they can't have extra parameters.)
