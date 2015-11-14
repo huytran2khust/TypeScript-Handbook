@@ -394,4 +394,5 @@ function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
 ## Open questions
 
 1. Does the tuple-to-parameter-list assignability story hold up? It's especially shaky around optional and rest parameters.
-2. Specifically, should rest parameters be special cased to retain their nice calling syntax, even when they are generated from a tuple type? (In this proposal, functions typed by a tuple kind have to pass arrays to their rest parameters, they can't have extra parameters.)
+2. How can tuple kinds be assigned to function arguments that have overloads? Will the inferred type be a union of tuples as with the optional-parameter case?
+3. Should rest parameters be special-cased to retain their nice calling syntax, even when they are generated from a tuple type? (In this proposal, functions typed by a tuple kind have to pass arrays to their rest parameters, they can't have extra parameters.)
