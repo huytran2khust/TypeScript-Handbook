@@ -394,5 +394,5 @@ function logged<...T,U>(target, name, descriptor: { value: (...T) => U }) {
 ## Open questions
 
 1. Does the tuple-to-parameter-list assignability story hold up? It's especially shaky around optional and rest parameters.
-2. How can tuple kinds be assigned to function arguments that have overloads? Will the inferred type be a union of tuples as with the optional-parameter case?
+2. Will the inferred type be a union of tuples as with the optional-parameter case? Because `bind`, `call` and `apply` are methods defined on Function, their type arguments need to be bound at function-creation time rather than the `bind` call site (for example). But this means that functions with overloads can't take or return types specific to their arguments -- they have to be a union of the overload types. Additionally, Function doesn't have a constructor that specifies type arguments directly, so there's really no way provide the correct types to `bind` et al. TODO: Add an example here. Note that this problem isn't necessarily unique to variadic functions. 
 3. Should rest parameters be special-cased to retain their nice calling syntax, even when they are generated from a tuple type? (In this proposal, functions typed by a tuple kind have to pass arrays to their rest parameters, they can't have extra parameters.)
